@@ -6,6 +6,7 @@ import json
 import os
 import re
 import glob
+import copy
 
 if __name__ == '__main__':
     # Using glob to find all json files in the directory
@@ -18,11 +19,21 @@ if __name__ == '__main__':
     for file in json_files:
         # List to hold the data
         data = []
-
+        match = re.search(r"(\d+)needles", file)
+        if match:
+            num_needles = int(match.group(1))
+        else:
+            continue
+        if num_needles != 128:
+            continue
         with open(file, 'r') as f:
             json_data = json.load(f)
             
             for k in json_data:
+                pattern = r"(\d+)weight-"
+                match = re.search(pattern, k)
+                weight_percent = int(match.group(1)) if match else None
+
                 pattern = r"_len_(\d+)_"
                 match = re.search(pattern, k)
                 context_length = int(match.group(1)) if match else None
@@ -36,38 +47,51 @@ if __name__ == '__main__':
                 # Appending to the list
                 data.append({
                     "Document Depth": document_depth,
+                    "Weight Percent": weight_percent,
                     "Context Length": context_length,
                     "Score": score
                 })
 
-        # Creating a DataFrame
-        df = pd.DataFrame(data)
+        context_lengths = set([d['Context Length'] for d in data])
+        # data = [d for d in data if d['Document Depth'] <= 50]
+        for context_length in context_lengths:
+            # Creating a DataFrame
+            data_by_legnth = []
+            for d in data:
+                if d['Context Length'] == context_length:
+                    data_by_legnth.append(copy.deepcopy(d))
+            for d in data_by_legnth:
+                del d['Context Length']
+            print(len(data_by_legnth))
+            df = pd.DataFrame(data_by_legnth)
+            pivot_table = pd.pivot_table(df, values='Score', index=['Document Depth', 'Weight Percent'], aggfunc='mean').reset_index()# This will aggregate
+            # pivot_table.reset_index()
+            print(df)
+            print(pivot_table)
+            pivot_table = pivot_table.pivot(index="Document Depth", columns="Weight Percent", values="Score") # This will turn into a proper pivot
 
-        pivot_table = pd.pivot_table(df, values='Score', index=['Document Depth', 'Context Length'], aggfunc='mean').reset_index() # This will aggregate
-        pivot_table = pivot_table.pivot(index="Document Depth", columns="Context Length", values="Score") # This will turn into a proper pivot
-        
-        # Create a custom colormap. Go to https://coolors.co/ and pick cool colors
-        cmap = LinearSegmentedColormap.from_list("custom_cmap", ["#F0496E", "#EBB839", "#0CD79F"])
+            # Create a custom colormap. Go to https://coolors.co/ and pick cool colors
+            cmap = LinearSegmentedColormap.from_list("custom_cmap", ["#F0496E", "#EBB839", "#0CD79F"])
 
-        # Create the heatmap with better aesthetics
-        plt.figure(figsize=(17.5, 8))  # Can adjust these dimensions as needed
-        sns.heatmap(
-            pivot_table,
-            # annot=True,
-            fmt="g",
-            cmap=cmap,
-            cbar_kws={'label': 'Score'},
-            vmin=1,
-            vmax=10,
-        )
+            # Create the heatmap with better aesthetics
+            plt.figure(figsize=(17.5, 8))  # Can adjust these dimensions as needed
+            sns.heatmap(
+                pivot_table,
+                # annot=True,
+                fmt="g",
+                cmap=cmap,
+                cbar_kws={'label': 'Score'},
+                vmin=0.0,
+                vmax=1.0,
+            )
 
-        # More aesthetics
-        plt.title(f'Pressure Testing\nFact Retrieval Across Context Lengths ("Needle In A HayStack")')  # Adds a title
-        plt.xlabel('Token Limit')  # X-axis label
-        plt.ylabel('Depth Percent')  # Y-axis label
-        plt.xticks(rotation=45)  # Rotates the x-axis labels to prevent overlap
-        plt.yticks(rotation=0)  # Ensures the y-axis labels are horizontal
-        plt.tight_layout()  # Fits everything neatly into the figure area
-        # Show the plot
-        plt.savefig(f"vis/{file.split('/')[-1].replace('.json', '')}.png")
+            # More aesthetics
+            plt.title(f'Pressure Testing\nFacts Retrieval Across Weight Percents ("Multi-Needles In A HayStack") of Context length {context_length}')  # Adds a title
+            plt.xlabel('Weigth Percent')  # X-axis label
+            plt.ylabel('Depth Percent')  # Y-axis label
+            plt.xticks(rotation=45)  # Rotates the x-axis labels to prevent overlap
+            plt.yticks(rotation=0)  # Ensures the y-axis labels are horizontal
+            plt.tight_layout()  # Fits everything neatly into the figure area
+            # Show the plot
+            plt.savefig(f"vis/{file.split('/')[-1].replace('.json', '')}-len-{context_length}.png")
 

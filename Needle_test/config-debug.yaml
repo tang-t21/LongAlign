@@ -1,0 +1,9 @@
+prompt_dir: '/home/LongAlign/Needle_test/tmp'
+save_dir: '/home/LongAlign/Needle_test/tmp_pred'
+max_new_tokens: 1500
+weight_percents: [60]
+context_lengths: [131072]
+num_needles: 128
+model:
+  model_provider: "Huggingface"  # "OpenAI", "Anthropic" or "Huggingface"
+  model_name: "/data/Meta-Llama-3.1-8B-Instruct/" # Change it to your own model name / HF model path

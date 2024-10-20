@@ -1,6 +1,10 @@
-prompt_dir: 'prompts'
-save_dir: 'pred'
-
+prompt_dir: '/home/LongAlign/Needle_test/prompts'
+save_dir: '/home/LongAlign/Needle_test/count_stars'
+max_new_tokens: 10
+# weight_percents: [30, 60, 70, 80, 90, 95, 100]
+weight_percents: [100]
+context_lengths: [32768]
+num_needles: 2
 model:
   model_provider: "Huggingface"  # "OpenAI", "Anthropic" or "Huggingface"
-  model_name: "THUDM/LongAlign-6B-64k"
+  model_name: "/data/Meta-Llama-3.1-8B-Instruct/" # Change it to your own model name / HF model path

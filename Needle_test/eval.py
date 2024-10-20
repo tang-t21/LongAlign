@@ -6,7 +6,7 @@ import re
 import time
 import requests
 
-api_key = '' # Enter your openai api key here
+api_key = "" # Enter your openai api key here
 
 def pred_openai(model_name, msg):
     tries = 0
@@ -46,8 +46,8 @@ CRITERIA = {
     Score 1: The answer is completely unrelated to the reference.
     Score 3: The answer has minor relevance but does not align with the reference.
     Score 5: The answer has moderate relevance but contains inaccuracies.
-    Score 7: The answer aligns with the reference but has minor omissions.
-    Score 10: The answer is completely accurate and aligns perfectly with the reference.
+    Score 7: The answer almost aligns with the reference but has minor omissions.
+    Score 10: The answer is completely accurate and includes all relevant information from the reference.
     Only respond with a numberical score
     """
 }
@@ -75,48 +75,79 @@ if __name__ == '__main__':
     save_dir = config['save_dir']
     model_name = config['model']['model_name']
     model_provider = config['model']['model_provider']
+    eval_num_needles = config['num_needles']
     criteria = get_criteria()
-    reference = config['prompt']['needle']
+    # reference = " ".join(config['prompt']['needles'])
     input = config['prompt']['retrieval_question']
+    # reference = []
+    # for needle in config['prompt']['needles']:
+    #     match=re.search(r'(.+) is one of', needle)
+    #     if match:
+    #         reference.append(match.group(1))
 
+    # print(reference)
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
     result_dict = {}
 
+    reference = []
+    with open(f"./needles/{eval_num_needles}keys_len_4.json", 'r') as f:
+        needles = json.load(f)["needles"]
+    for needle in needles:
+        match=re.search(r' (.+) is one of', needle)
+        if match:
+            reference.append(match.group(1))
+
     for filename in os.listdir(pred_dir):
+        match = re.search(r'len_(\d+)', filename)
+        if match:
+            context_length = int(match.group(1))
+        else:
+            continue
+        match = re.search(r'(\d+)needle', filename)
+        if match:
+            num_needles = int(match.group(1))
+        else:
+            continue
+        if num_needles != eval_num_needles:
+            continue
         if not filename.endswith('.txt'):
             continue
 
         with open(f'{pred_dir}/{filename}', 'r') as f:
             data = f.read().strip()
-
         prediction = data
-        user_template = get_user_template(input, prediction, reference, criteria)
-
-        if model_provider == 'OpenAI':
-            msg = [{
-                    "role": "system",
-                    "content": SYSTEM_TEMPLATE
-                }, {
-                    "role": "user",
-                    "content": user_template
-                }
-            ]
-            result = pred_openai(model_name, msg)
+        # user_template = get_user_template(input, prediction, reference, criteria)
+        # if model_provider == 'OpenAI':
+        #     msg = [{
+        #             "role": "system",
+        #             "content": SYSTEM_TEMPLATE
+        #         }, {
+        #             "role": "user",
+        #             "content": user_template
+        #         }
+        #     ]
+        #     result = pred_openai(model_name, msg)
             
-        else:
-            raise NotImplementedError(f'Not implemented model provider: {model_provider}')
+        # else:
+        #     raise NotImplementedError(f'Not implemented model provider: {model_provider}')
         
-        pattern = r"\[\[(\d+)\]\]"
-        match = re.search(pattern, result)
-        score = int(match.group(1)) if match else None
-
+        # pattern = r"\[\[(\d+)\]\]"
+        # match = re.search(pattern, result)
+        # score = int(match.group(1)) if match else None
+        score = 0
+        for ref in reference:
+            if ref in prediction:
+                score += 1
+        score = score / len(reference)
+        # score = 1 if reference in prediction else 0
         result_dict[filename.replace('.txt', '')] = {
             'prediction': prediction,
             'score': score
         }
+    print(reference)
 
-    with open(f'{save_dir}/{model_provider}_{model_name}_eval.json', 'w') as f:
+    with open(f'{save_dir}/{model_provider}_{model_name}_{eval_num_needles}needles_eval.json', 'w') as f:
         json.dump(result_dict, f, indent=4)
 

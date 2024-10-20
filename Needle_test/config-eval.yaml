@@ -2,9 +2,23 @@ pred_dir: 'pred'
 save_dir: 'results'
 
 model:
-  model_provider: "OpenAI"
-  model_name: "gpt-4"
+  model_provider: "Local"
+  model_name: "Average"
+
+num_needles: 128
 
 prompt:
-  needle: "\nThe best thing to do in San Francisco is eat a sandwich and sit in Dolores Park on a sunny day.\n"
-  retrieval_question: "What is the best thing to do in San Francisco?"
+  # needle: "\nThe best thing to do in San Francisco is eat a sandwich and sit in Dolores Park on a sunny day.\n"
+  # retrieval_question: "What is the best thing to do in San Francisco?"
+  needles: [
+        "Fig is one of the secret ingredients needed to build the perfect pizza.", 
+        "Prosciutto is one of the secret ingredients needed to build the perfect pizza.", 
+        "Goat cheese is one of the secret ingredients needed to build the perfect pizza.",
+        "Tomato sauce is one of the secret ingredients needed to build the perfect pizza.",
+        "Basil is one of the secret ingredients needed to build the perfect pizza.",
+        "Mozzarella is one of the secret ingredients needed to build the perfect pizza.",
+        "Olive oil is one of the secret ingredients needed to build the perfect pizza.",
+        "Garlic is one of the secret ingredients needed to build the perfect pizza.",
+        "Oregano is one of the secret ingredients needed to build the perfect pizza.",
+  ]
+  retrieval_question: "What are secret ingredients needed to build the perfect pizza?"
